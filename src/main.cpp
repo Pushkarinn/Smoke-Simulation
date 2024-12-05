@@ -62,6 +62,9 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
             glfwSetWindowShouldClose(window, true);  // Closes the application if the escape key is pressed
         }
         if (key == GLFW_KEY_LEFT_SHIFT) shiftPressed = true;
+        if (key == GLFW_KEY_R) {
+            g_voxelTexture.init_textures();
+        }
     }
     if (action == GLFW_RELEASE) {
         if (key == GLFW_KEY_LEFT_SHIFT) shiftPressed = false;
@@ -69,7 +72,7 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
 }
 
 
-float g_cameraDistance = 5.0f;
+float g_cameraDistance = 20.0f;
 float g_cameraAngleX = 0.0f;
 
 float g_yaw = 0.0f;
@@ -185,6 +188,8 @@ void init() {
     initGPUprogram();
 
     initImGui();
+
+    g_voxelTexture.init_textures();
 
     g_cloudsManager.setDefaults();
 }
@@ -307,7 +312,7 @@ void render() {
     setUniform(g_lightingShader, "u_invProjMat", glm::inverse(projMatrix));
 
     glActiveTexture(GL_TEXTURE3);
-    glBindTexture(GL_TEXTURE_3D, g_voxelTexture.fieldTextureID);
+    glBindTexture(GL_TEXTURE_3D, g_voxelTexture.getTextureID());
 
     setUniform(g_lightingShader, "u_voxelTexture", 3);
 
@@ -339,6 +344,7 @@ void update(const float currentTimeInSec) {
 
     if (currentTimeInSec - lastTime >= 1.0) {
         g_fps = static_cast<float>(frameCount) / (currentTimeInSec - lastTime);
+
         frameCount = 0;
         lastTime = currentTimeInSec;
     }
@@ -361,7 +367,7 @@ void update(const float currentTimeInSec) {
     if (frameCount % 1 == 0) g_triggerRecompute = true;
 
     if (g_triggerRecompute) {
-        g_voxelTexture.generateTexture(g_cloudsManager.m_generationParams.domainSize, g_cloudsManager.m_generationParams.domainCenter);
+        g_voxelTexture.simulationStep(g_cloudsManager.m_generationParams.domainSize, g_cloudsManager.m_generationParams.domainCenter, 0.01f);
         g_triggerRecompute = false;
     }
 
