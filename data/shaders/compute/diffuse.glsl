@@ -10,9 +10,31 @@ uniform float mu_density;
 uniform float mu_velocity;
 uniform float dt;
 
+void set_boundary(ivec3 coords, ivec3 dims) {
+    vec4 res = vec4(0.0);
+    if(coords.x == 0)
+        imageStore(img_output, coords, texelFetch(u_inputImg, coords + ivec3(1, 0, 0), 0));
+    if(coords.x == dims.x - 1) 
+        imageStore(img_output, coords, texelFetch(u_inputImg, coords + ivec3(-1, 0, 0), 0));
+    if(coords.y == 0) 
+        imageStore(img_output, coords, texelFetch(u_inputImg, coords + ivec3(0, 1, 0), 0));
+    if(coords.y == dims.y - 1) 
+        imageStore(img_output, coords, texelFetch(u_inputImg, coords + ivec3(0, -1, 0), 0));
+    if(coords.z == 0) 
+        imageStore(img_output, coords, texelFetch(u_inputImg, coords + ivec3(0, 0, 1), 0));
+    if(coords.z == dims.z - 1) 
+        imageStore(img_output, coords, texelFetch(u_inputImg, coords + ivec3(0, 0, -1), 0));
+    
+}
+
 void main() {
     ivec3 dims = imageSize(img_output);
     ivec3 coords = ivec3(gl_GlobalInvocationID.xyz);
+
+    if(coords.x == 0 || coords.y == 0 || coords.z == 0 || coords.x == dims.x - 1 || coords.y == dims.y - 1 || coords.z == dims.z - 1) {
+        set_boundary(coords, dims);
+        return;
+    }
 
     vec4 density = texelFetch(u_inputImg, coords, 0);
     vec4 densityL = texelFetch(u_inputImg, coords + ivec3(-1, 0, 0), 0);
