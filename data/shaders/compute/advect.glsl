@@ -13,16 +13,15 @@ vec4 sampleTex(vec3 p, sampler3D tex, ivec3 dims) {
     return texture(tex, (p+vec3(0.5)) / vec3(dims));
 }
 
-
 void main() {
     ivec3 dims = imageSize(img_output);
     ivec3 coords = ivec3(gl_GlobalInvocationID.xyz);
 
-    if(coords.x == 0 || coords.y == 0 || coords.z == 0 || coords.x == dims.x - 1 || coords.y == dims.y - 1 || coords.z == dims.z - 1) {
+    if(coords.x == 0 || coords.y == 0 || coords.z == 0 || coords.x == dims.x - 1 || coords.y == dims.y - 1 || coords.z == dims.z - 1)
         return;
-    }
+    
 
-    vec3 vel = 0.125 * (
+    /*vec3 vel = 0.125 * (
         sampleTex(vec3(coords) + 0.5 * vec3( 1,  1,  1), u_velocity, dims).gba +
         sampleTex(vec3(coords) + 0.5 * vec3(-1,  1,  1), u_velocity, dims).gba +
         sampleTex(vec3(coords) + 0.5 * vec3( 1, -1,  1), u_velocity, dims).gba +
@@ -31,8 +30,9 @@ void main() {
         sampleTex(vec3(coords) + 0.5 * vec3(-1,  1, -1), u_velocity, dims).gba +
         sampleTex(vec3(coords) + 0.5 * vec3( 1, -1, -1), u_velocity, dims).gba +
         sampleTex(vec3(coords) + 0.5 * vec3(-1, -1, -1), u_velocity, dims).gba
-    );
+    );*/
 
+    vec3 vel = sampleTex(vec3(coords), u_velocity, dims).gba;
 
     vec3 p_back = vec3(coords) - dt * vel;
 
