@@ -61,7 +61,7 @@ public:
 
     void setDefaults() {
         m_volumeParams.numSteps = 100;
-        m_volumeParams.numLightSteps = 20;
+        m_volumeParams.numLightSteps = 40;
 
         m_volumeParams.stepSize = 0.01f;
         m_volumeParams.lightStepSize = 0.01f;
@@ -70,11 +70,11 @@ public:
         m_generationParams.domainSize = glm::vec3(10, 10, 10);
 
         m_volumeParams.cloudAbsorption = 1.0f;
-        m_volumeParams.lightAbsorption = 0.3f;
+        m_volumeParams.lightAbsorption = 0.1f;
         m_volumeParams.densityMultiplier = 1.5f;
 
         m_volumeParams.scatteringG = 0.5f;
-        m_volumeParams.phaseParams = glm::vec4(0.74f, 0.1f, 0.1f, 1.0f);
+        m_volumeParams.phaseParams = glm::vec4(0.65f, 0.1f, 0.3f, 1.0f);
     }
 
     bool renderUI() {
