@@ -43,8 +43,10 @@ public:
             for (int j = 0; j < dimY; j++) {
                 for (int k = 0; k < dimXZ; k++) {
                     float val = (i >= 32 && i < 96 && j >= 32 && j < 96 && k >= 32 && k < 96) ? 1.0f : 0.0f;
-
                     data[index(i, j, k, 0)] = val;
+
+                    float vel_val = (i >= 16 && i < 80 && j >= 32 && j < 96 && k >= 32 && k < 96) ? 5.0f : 0.0f;
+                    data[index(i, j, k, 1)] = vel_val;
                 }
             }
         }
@@ -90,7 +92,6 @@ public:
             glGenTextures(1, &currentTextureID);
         }
 
-
         glBindTexture(GL_TEXTURE_3D, currentTextureID);
 
         glTexParameterfv(GL_TEXTURE_3D, GL_TEXTURE_BORDER_COLOR, borderColor);
@@ -117,14 +118,14 @@ public:
         glUseProgram(diffuseShaderID);
 
         setUniform(diffuseShaderID, "dt", dt);
-        setUniform(diffuseShaderID, "mu_density", 0.000f);
-        setUniform(diffuseShaderID, "mu_velocity", 0.000f);
+        setUniform(diffuseShaderID, "mu_density", 0.0001f);
+        setUniform(diffuseShaderID, "mu_velocity", 0.0001f);
         setUniform(diffuseShaderID, "u_inputImg", 0);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_3D, previousTextureID);
 
-        glBindImageTexture(0, previousTextureID, 0, GL_TRUE, 0, GL_READ_WRITE, GL_R32F);
+        glBindImageTexture(0, previousTextureID, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32F);
 
         for (int i = 0; i < 15; i++) {
 
@@ -134,15 +135,23 @@ public:
         }
 
         glUseProgram(advectShaderID);
+
         setUniform(advectShaderID, "dt", 0.01f);
         setUniform(advectShaderID, "u_inputImg", 0);
         setUniform(advectShaderID, "u_velocity", 0);
+        setUniform(advectShaderID, "u_mask", glm::vec4(0.0f, 1.0f, 1.0f, 1.0f));
+
+        glBindImageTexture(0, previousTextureID, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32F);
 
         glDispatchCompute(dimXZ / 8, dimY / 8, dimXZ / 8);
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
+        setUniform(advectShaderID, "u_mask", glm::vec4(1.0f, 0.0f, 0.0f, 0.0f));
 
-        glBindImageTexture(0, 0, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32F);
+        glDispatchCompute(dimXZ / 8, dimY / 8, dimXZ / 8);
+        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+        glBindImageTexture(0, 0, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
         glBindTexture(GL_TEXTURE_3D, 0);
 
         glUseProgram(0);
