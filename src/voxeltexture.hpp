@@ -6,11 +6,12 @@
 
 class VoxelTexture {
 public:
-    GLuint previousTextureID{};
-    GLuint currentTextureID{};
+    GLuint densVelTextureID{};
+    GLuint divergenceTextureID{};
     GLuint shaderID{};
     GLuint diffuseShaderID{};
     GLuint advectShaderID{};
+    GLuint divShaderID{};
 
     GLuint dimXZ{};
     GLuint dimY{};
@@ -23,11 +24,12 @@ public:
         dimY = 128;
     }
     ~VoxelTexture() {
-        if (previousTextureID) glDeleteTextures(1, &previousTextureID);
-        if (currentTextureID) glDeleteTextures(1, &currentTextureID);
+        if (densVelTextureID) glDeleteTextures(1, &densVelTextureID);
+        if (divergenceTextureID) glDeleteTextures(1, &divergenceTextureID);
         if (shaderID) glDeleteProgram(shaderID);
         if (diffuseShaderID) glDeleteProgram(diffuseShaderID);
         if (advectShaderID) glDeleteProgram(advectShaderID);
+        if (divShaderID) glDeleteProgram(divShaderID);
     }
 
     int index(int x, int y, int z, int channel) {
@@ -58,25 +60,28 @@ public:
 
         if (shaderID) glDeleteProgram(shaderID);
         if (diffuseShaderID) glDeleteProgram(diffuseShaderID);
+        if (advectShaderID) glDeleteProgram(advectShaderID);
 
         shaderID = glCreateProgram();
         diffuseShaderID = glCreateProgram();
         advectShaderID = glCreateProgram();
+        divShaderID = glCreateProgram();
 
         loadShader(shaderID, GL_COMPUTE_SHADER, "../data/shaders/compute.glsl");
         loadShader(diffuseShaderID, GL_COMPUTE_SHADER, "../data/shaders/compute/diffuse.glsl");
         loadShader(advectShaderID, GL_COMPUTE_SHADER, "../data/shaders/compute/advect.glsl");
+        loadShader(divShaderID, GL_COMPUTE_SHADER, "../data/shaders/compute/div.glsl");
 
         glLinkProgram(shaderID);
         glLinkProgram(diffuseShaderID);
         glLinkProgram(advectShaderID);
+        glLinkProgram(divShaderID);
 
-        if (!previousTextureID) {
-            glGenTextures(1, &previousTextureID);
+        if (!densVelTextureID) {
+            glGenTextures(1, &densVelTextureID);
         }
 
-
-        glBindTexture(GL_TEXTURE_3D, previousTextureID);
+        glBindTexture(GL_TEXTURE_3D, densVelTextureID);
 
         float borderColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
         glTexParameterfv(GL_TEXTURE_3D, GL_TEXTURE_BORDER_COLOR, borderColor);
@@ -88,11 +93,11 @@ public:
 
         glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA32F, dimXZ, dimY, dimXZ, 0, GL_RGBA, GL_FLOAT, data.data());
 
-        if (!currentTextureID) {
-            glGenTextures(1, &currentTextureID);
+        if (!divergenceTextureID) {
+            glGenTextures(1, &divergenceTextureID);
         }
 
-        glBindTexture(GL_TEXTURE_3D, currentTextureID);
+        glBindTexture(GL_TEXTURE_3D, divergenceTextureID);
 
         glTexParameterfv(GL_TEXTURE_3D, GL_TEXTURE_BORDER_COLOR, borderColor);
 
@@ -102,18 +107,10 @@ public:
         glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 
         glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA32F, dimXZ, dimY, dimXZ, 0, GL_RGBA, GL_FLOAT, nullptr);
-
-        swap = false;
     }
-
-    bool swap = false;
 
     void simulationStep(glm::vec3 targetSize, glm::vec3 targetOffest, float dt) {
         //std::cout << "Generating voxel texture..." << std::endl;
-
-        GLuint currentTextureID = swap ? previousTextureID : this->currentTextureID;
-        GLuint previousTextureID = swap ? this->currentTextureID : this->previousTextureID;
-        //swap = !swap;
 
         glUseProgram(diffuseShaderID);
 
@@ -123,9 +120,9 @@ public:
         setUniform(diffuseShaderID, "u_inputImg", 0);
 
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_3D, previousTextureID);
+        glBindTexture(GL_TEXTURE_3D, densVelTextureID);
 
-        glBindImageTexture(0, previousTextureID, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32F);
+        glBindImageTexture(0, densVelTextureID, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32F);
 
         for (int i = 0; i < 15; i++) {
 
@@ -141,12 +138,24 @@ public:
         setUniform(advectShaderID, "u_velocity", 0);
         setUniform(advectShaderID, "u_mask", glm::vec4(0.0f, 1.0f, 1.0f, 1.0f));
 
-        glBindImageTexture(0, previousTextureID, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32F);
+        glBindImageTexture(0, densVelTextureID, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32F);
 
         glDispatchCompute(dimXZ / 8, dimY / 8, dimXZ / 8);
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
         setUniform(advectShaderID, "u_mask", glm::vec4(1.0f, 0.0f, 0.0f, 0.0f));
+
+        glDispatchCompute(dimXZ / 8, dimY / 8, dimXZ / 8);
+        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+        glUseProgram(divShaderID);
+
+        setUniform(divShaderID, "u_inputImg", 0);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_3D, densVelTextureID);
+
+        glBindImageTexture(0, divergenceTextureID, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32F);
 
         glDispatchCompute(dimXZ / 8, dimY / 8, dimXZ / 8);
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
@@ -173,8 +182,7 @@ public:
     }
 
     GLuint getTextureID() {
-        return previousTextureID;
-        // return swap ? previousTextureID : currentTextureID;
+        return divergenceTextureID;
     }
 };
 
