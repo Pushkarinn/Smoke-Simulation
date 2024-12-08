@@ -205,12 +205,16 @@ void clear() {
 }
 
 bool g_triggerRecompute = true;
+int Selecteditem = 0;
 
 void renderPerfsUI() {
     ImGui::Begin("Performance", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
     ImGui::Text("FPS: %.1f", g_fps);
     ImGui::Text("Frame time: %.3f ms", 1000.0f / g_fps);
+
+    static const char* items[]{ "Volume","Divergence","Div Solve" };
+    ImGui::Combo("Show texture", &Selecteditem, items, IM_ARRAYSIZE(items));
 
     ImGui::End();
 }
@@ -311,7 +315,7 @@ void render() {
     setUniform(g_lightingShader, "u_invProjMat", glm::inverse(projMatrix));
 
     glActiveTexture(GL_TEXTURE3);
-    glBindTexture(GL_TEXTURE_3D, g_voxelTexture.getTextureID());
+    glBindTexture(GL_TEXTURE_3D, g_voxelTexture.getTextureID(Selecteditem));
 
     setUniform(g_lightingShader, "u_voxelTexture", 3);
 
@@ -366,7 +370,7 @@ void update(const float currentTimeInSec) {
     if (frameCount % 1 == 0) g_triggerRecompute = true;
 
     if (g_triggerRecompute) {
-        g_voxelTexture.simulationStep(g_cloudsManager.m_generationParams.domainSize, g_cloudsManager.m_generationParams.domainCenter, 0.01f);
+        g_voxelTexture.simulationStep(g_cloudsManager.m_generationParams.domainSize, g_cloudsManager.m_generationParams.domainCenter, 0.05f);
         g_triggerRecompute = false;
     }
 

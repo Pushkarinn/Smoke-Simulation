@@ -13,9 +13,9 @@ void main() {
     ivec3 coords = ivec3(gl_GlobalInvocationID.xyz);
 
     // With texelFetch
-    float dvx = (texelFetch(u_inputImg, coords + ivec3(1, 0, 0), 0).r - texelFetch(u_inputImg, coords - ivec3(1, 0, 0), 0).r) * 0.5;
-    float dvy = (texelFetch(u_inputImg, coords + ivec3(0, 1, 0), 0).g - texelFetch(u_inputImg, coords - ivec3(0, 1, 0), 0).g) * 0.5;
-    float dvz = (texelFetch(u_inputImg, coords + ivec3(0, 0, 1), 0).b - texelFetch(u_inputImg, coords - ivec3(0, 0, 1), 0).b) * 0.5;
+    float dvx = (texelFetch(u_inputImg, coords + ivec3(1, 0, 0), 0).g - texelFetch(u_inputImg, coords - ivec3(1, 0, 0), 0).g) * 0.5;
+    float dvy = (texelFetch(u_inputImg, coords + ivec3(0, 1, 0), 0).b - texelFetch(u_inputImg, coords - ivec3(0, 1, 0), 0).b) * 0.5;
+    float dvz = (texelFetch(u_inputImg, coords + ivec3(0, 0, 1), 0).a - texelFetch(u_inputImg, coords - ivec3(0, 0, 1), 0).a) * 0.5;
 
     float div = dvx + dvy + dvz;
 

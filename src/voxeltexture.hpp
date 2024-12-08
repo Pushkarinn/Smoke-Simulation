@@ -10,10 +10,13 @@ class VoxelTexture {
 public:
     Texture3D densVelTexture{};
     Texture3D divergenceTexture{};
+    Texture3D divFreeTexture{};
 
     ComputeShader diffuseShader{};
     ComputeShader advectShader{};
     ComputeShader divShader{};
+    ComputeShader solveDivShader{};
+    ComputeShader nablaGShader{};
 
     GLuint dimXZ{};
     GLuint dimY{};
@@ -40,10 +43,11 @@ public:
         for (int i = 0; i < dimXZ; i++) {
             for (int j = 0; j < dimY; j++) {
                 for (int k = 0; k < dimXZ; k++) {
-                    float val = (i >= 32 && i < 96 && j >= 32 && j < 96 && k >= 32 && k < 96) ? 1.0f : 0.0f;
+                    int distSq = pow(i - 64, 2) + pow(j - 64, 2) + pow(k - 64, 2);
+                    float val = distSq < 32 * 32 ? 1.0f : 0.0f;
                     data[index(i, j, k, 0)] = val;
 
-                    float vel_val = (i >= 16 && i < 80 && j >= 32 && j < 96 && k >= 32 && k < 96) ? 5.0f : 0.0f;
+                    float vel_val = (i >= 32 && i < 96 && j >= 32 && j < 96 && k >= 32 && k < 96) ? 15.0f : 0.0f;
                     data[index(i, j, k, 1)] = vel_val;
                 }
             }
@@ -57,9 +61,14 @@ public:
         diffuseShader.init("../data/shaders/compute/diffuse.glsl", dimXZ, dimY);
         advectShader.init("../data/shaders/compute/advect.glsl", dimXZ, dimY);
         divShader.init("../data/shaders/compute/div.glsl", dimXZ, dimY);
+        solveDivShader.init("../data/shaders/compute/solve_div.glsl", dimXZ, dimY);
+        nablaGShader.init("../data/shaders/compute/nabla_g.glsl", dimXZ, dimY);
 
         densVelTexture.init(dimXZ, dimY, data);
         divergenceTexture.init(dimXZ, dimY);
+
+        std::vector<float> divFreeData(dimXZ * dimY * dimXZ * 4, 0.0f);
+        divFreeTexture.init(dimXZ, dimY, divFreeData);
     }
 
     void simulationStep(glm::vec3 targetSize, glm::vec3 targetOffest, float dt) {
@@ -83,7 +92,7 @@ public:
 
         advectShader.use();
 
-        setUniform(advectShader.id(), "dt", 0.01f);
+        setUniform(advectShader.id(), "dt", dt);
         setUniform(advectShader.id(), "u_inputImg", 0);
         setUniform(advectShader.id(), "u_velocity", 0);
         setUniform(advectShader.id(), "u_mask", glm::vec4(0.0f, 1.0f, 1.0f, 1.0f));
@@ -102,14 +111,53 @@ public:
 
         divShader.run();
 
+        solveDivShader.use();
+        setUniform(solveDivShader.id(), "u_inputImg", 0);
+        setUniform(solveDivShader.id(), "u_divergence", 1);
+
+        // Reset the divFreeTexture
+        std::vector<float> divFreeData(dimXZ * dimY * dimXZ * 4, 0.0f);
+        divFreeTexture.init(dimXZ, dimY, divFreeData);
+
+        glActiveTexture(GL_TEXTURE0);
+        divFreeTexture.bind();
+        glActiveTexture(GL_TEXTURE1);
+        divergenceTexture.bind();
+
+        glBindImageTexture(0, divFreeTexture.textureID, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32F);
+
+        for (int i = 0; i < 15; i++) {
+            solveDivShader.run();
+        }
+
+        nablaGShader.use();
+        setUniform(nablaGShader.id(), "u_inputImg", 0);
+        setUniform(nablaGShader.id(), "u_velocity", 1);
+
+        glActiveTexture(GL_TEXTURE0);
+        divFreeTexture.bind();
+        glActiveTexture(GL_TEXTURE1);
+        densVelTexture.bind();
+
+        glBindImageTexture(0, densVelTexture.textureID, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32F);
+
+        nablaGShader.run();
+
         glBindImageTexture(0, 0, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
         glBindTexture(GL_TEXTURE_3D, 0);
 
         glUseProgram(0);
     }
 
-    GLuint getTextureID() {
-        return divergenceTexture.textureID;
+    GLuint getTextureID(int tex) {
+        switch (tex) {
+        case 1:
+            return divergenceTexture.textureID;
+        case 2:
+            return divFreeTexture.textureID;
+        default:
+            return densVelTexture.textureID;
+        }
     }
 };
 
