@@ -5,7 +5,7 @@
 #include "shader.hpp"
 #include "object3d.hpp"
 #include "framebuffer.hpp"
-#include "voxeltexture.hpp"
+#include "simulation.hpp"
 #include "cloudsmanager.hpp"
 #include "scene.hpp"
 
@@ -32,7 +32,7 @@ GLuint g_lightingShader{}; // A GPU program contains at least a vertex shader an
 
 std::shared_ptr<FrameBuffer> g_framebuffer{};
 
-VoxelTexture g_voxelTexture{};
+Simulation g_simulation{};
 CloudsManager g_cloudsManager{};
 
 
@@ -63,7 +63,7 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
         }
         if (key == GLFW_KEY_LEFT_SHIFT) shiftPressed = true;
         if (key == GLFW_KEY_R) {
-            g_voxelTexture.init_textures();
+            g_simulation.init_textures();
         }
     }
     if (action == GLFW_RELEASE) {
@@ -188,7 +188,7 @@ void init() {
 
     initImGui();
 
-    g_voxelTexture.init_textures();
+    g_simulation.init_textures();
 
     g_cloudsManager.setDefaults();
 }
@@ -315,7 +315,7 @@ void render() {
     setUniform(g_lightingShader, "u_invProjMat", glm::inverse(projMatrix));
 
     glActiveTexture(GL_TEXTURE3);
-    glBindTexture(GL_TEXTURE_3D, g_voxelTexture.getTextureID(Selecteditem));
+    glBindTexture(GL_TEXTURE_3D, g_simulation.getTextureID(Selecteditem));
 
     setUniform(g_lightingShader, "u_voxelTexture", 3);
 
@@ -370,7 +370,7 @@ void update(const float currentTimeInSec) {
     if (frameCount % 1 == 0) g_triggerRecompute = true;
 
     if (g_triggerRecompute) {
-        g_voxelTexture.simulationStep(g_cloudsManager.m_generationParams.domainSize, g_cloudsManager.m_generationParams.domainCenter, 0.1f);
+        g_simulation.simulationStep(g_cloudsManager.m_generationParams.domainSize, g_cloudsManager.m_generationParams.domainCenter, 0.1f);
         g_triggerRecompute = false;
     }
 

@@ -6,7 +6,7 @@
 #include "texture3D.hpp"
 #include "compute_shader.hpp"
 
-class VoxelTexture {
+class Simulation {
 public:
     Texture3D densVelTexture{};
     Texture3D divergenceTexture{};
@@ -27,11 +27,11 @@ public:
     std::vector<float> data{};
 
 public:
-    VoxelTexture() {
+    Simulation() {
         dimXZ = 128;
         dimY = 256;
     }
-    ~VoxelTexture() {
+    ~Simulation() {
     }
 
     int index(int x, int y, int z, int channel) {
@@ -84,104 +84,45 @@ public:
         setUniform(diffuseShader.id(), "dt", dt);
         setUniform(diffuseShader.id(), "mu_density", 0.005f);
         setUniform(diffuseShader.id(), "mu_velocity", 0.001f);
-        setUniform(diffuseShader.id(), "u_inputImg", 0);
-
-        glActiveTexture(GL_TEXTURE0);
-        densVelTexture.bind();
-
-        glBindImageTexture(0, densVelTexture.textureID, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32F);
 
         for (int i = 0; i < 15; i++) {
-            diffuseShader.run();
+            diffuseShader.run({ &densVelTexture }, { "u_inputImg" }, &densVelTexture);
         }
 
         advectShader.use();
 
         setUniform(advectShader.id(), "dt", dt);
-        setUniform(advectShader.id(), "u_inputImg", 0);
-        setUniform(advectShader.id(), "u_velocity", 0);
         setUniform(advectShader.id(), "u_mask", glm::vec4(0.0f, 1.0f, 1.0f, 1.0f));
 
-        advectShader.run();
-
-        glActiveTexture(GL_TEXTURE0);
-        densVelTexture.bind();
+        advectShader.run({ &densVelTexture, &densVelTexture }, { "u_inputImg", "u_velocity" }, &densVelTexture);
 
         curlShader.use();
-        setUniform(curlShader.id(), "u_inputImg", 0);
-
-        glBindImageTexture(0, curlTexture.textureID, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32F);
-
-        curlShader.run();
-
-        glActiveTexture(GL_TEXTURE0);
-        densVelTexture.bind();
-        glActiveTexture(GL_TEXTURE1);
-        curlTexture.bind();
+        curlShader.run({ &densVelTexture }, { "u_inputImg" }, &curlTexture);
 
         confForceShader.use();
-        setUniform(confForceShader.id(), "u_inputImg", 0);
-        setUniform(confForceShader.id(), "u_curl", 1);
         setUniform(confForceShader.id(), "dt", dt);
-
-        glBindImageTexture(0, densVelTexture.textureID, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32F);
-
-        confForceShader.run();
-
-        glActiveTexture(GL_TEXTURE0);
-        densVelTexture.bind();
+        confForceShader.run({ &densVelTexture, &curlTexture }, { "u_inputImg", "u_curl" }, &densVelTexture);
 
         divShader.use();
+        divShader.run({ &densVelTexture }, { "u_inputImg" }, &divergenceTexture);
 
-        setUniform(divShader.id(), "u_inputImg", 0);
-
-        glBindImageTexture(0, divergenceTexture.textureID, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32F);
-
-        divShader.run();
-
-        solveDivShader.use();
-        setUniform(solveDivShader.id(), "u_inputImg", 0);
-        setUniform(solveDivShader.id(), "u_divergence", 1);
-
-        // Reset the divFreeTexture
-        std::vector<float> divFreeData(dimXZ * dimY * dimXZ * 4, 0.0f);
+        std::vector<float> divFreeData(dimXZ * dimY * dimXZ * 4, 0.0f); // Reset the div free texture 
         divFreeTexture.init(dimXZ, dimY, divFreeData);
 
-        glActiveTexture(GL_TEXTURE0);
-        divFreeTexture.bind();
-        glActiveTexture(GL_TEXTURE1);
-        divergenceTexture.bind();
-
-        glBindImageTexture(0, divFreeTexture.textureID, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32F);
-
+        solveDivShader.use();
         for (int i = 0; i < 15; i++) {
-            solveDivShader.run();
+            solveDivShader.run({ &divFreeTexture, &divergenceTexture }, { "u_inputImg", "u_divergence" }, &divFreeTexture);
         }
 
         nablaGShader.use();
-        setUniform(nablaGShader.id(), "u_inputImg", 0);
-        setUniform(nablaGShader.id(), "u_velocity", 1);
-
-        glActiveTexture(GL_TEXTURE0);
-        divFreeTexture.bind();
-        glActiveTexture(GL_TEXTURE1);
-        densVelTexture.bind();
-
-        glBindImageTexture(0, densVelTexture.textureID, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32F);
-
-        nablaGShader.run();
-
-        glActiveTexture(GL_TEXTURE0);
-        densVelTexture.bind();
+        nablaGShader.run({ &divFreeTexture, &densVelTexture }, { "u_inputImg", "u_velocity" }, &densVelTexture);
 
         advectShader.use();
 
         setUniform(advectShader.id(), "dt", dt);
-        setUniform(advectShader.id(), "u_inputImg", 0);
-        setUniform(advectShader.id(), "u_velocity", 0);
         setUniform(advectShader.id(), "u_mask", glm::vec4(1.0f, 0.0f, 0.0f, 0.0f));
 
-        advectShader.run();
+        advectShader.run({ &densVelTexture, &densVelTexture }, { "u_inputImg", "u_velocity" }, &densVelTexture);
 
         glBindImageTexture(0, 0, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
         glBindTexture(GL_TEXTURE_3D, 0);

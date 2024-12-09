@@ -2,6 +2,7 @@
 #define COMPUTE_SHADER_HPP
 
 #include "shader.hpp"
+#include "texture3D.hpp"
 
 class ComputeShader {
 public:
@@ -38,8 +39,18 @@ public:
         }
     }
 
-    void run() {
+    void run(std::vector<Texture3D*> inputs, std::vector<std::string> input_names, Texture3D* output) {
+
         if (programID) {
+
+            for (int i = 0; i < inputs.size(); i++) {
+                glActiveTexture(GL_TEXTURE0 + i);
+                glBindTexture(GL_TEXTURE_3D, inputs[i]->textureID);
+                setUniform(id(), input_names[i].c_str(), i);
+            }
+
+            glBindImageTexture(0, output->textureID, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32F);
+
             glDispatchCompute(dimXZ / 8, dimY / 8, dimXZ / 8);
             glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
         }
