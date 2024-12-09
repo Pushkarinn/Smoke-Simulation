@@ -370,7 +370,7 @@ void update(const float currentTimeInSec) {
     if (frameCount % 1 == 0) g_triggerRecompute = true;
 
     if (g_triggerRecompute) {
-        g_voxelTexture.simulationStep(g_cloudsManager.m_generationParams.domainSize, g_cloudsManager.m_generationParams.domainCenter, 0.05f);
+        g_voxelTexture.simulationStep(g_cloudsManager.m_generationParams.domainSize, g_cloudsManager.m_generationParams.domainCenter, 0.1f);
         g_triggerRecompute = false;
     }
 

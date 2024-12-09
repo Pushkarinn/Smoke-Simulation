@@ -69,9 +69,9 @@ public:
         m_generationParams.domainCenter = glm::vec3(0, 0, 0);
         m_generationParams.domainSize = glm::vec3(10, 10, 10);
 
-        m_volumeParams.cloudAbsorption = 1.0f;
-        m_volumeParams.lightAbsorption = 0.1f;
-        m_volumeParams.densityMultiplier = 1.5f;
+        m_volumeParams.cloudAbsorption = 1.35f;
+        m_volumeParams.lightAbsorption = 0.35f;
+        m_volumeParams.densityMultiplier = 4.0f;
 
         m_volumeParams.scatteringG = 0.5f;
         m_volumeParams.phaseParams = glm::vec4(0.65f, 0.1f, 0.3f, 1.0f);
