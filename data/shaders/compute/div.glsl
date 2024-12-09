@@ -12,6 +12,10 @@ void main() {
     ivec3 dims = imageSize(img_output);
     ivec3 coords = ivec3(gl_GlobalInvocationID.xyz);
 
+    if(coords.x == 0 || coords.y == 0 || coords.z == 0 || coords.x == dims.x - 1 || coords.y == dims.y - 1 || coords.z == dims.z - 1) {
+        return;
+    }
+
     // With texelFetch
     float dvx = (texelFetch(u_inputImg, coords + ivec3(1, 0, 0), 0).g - texelFetch(u_inputImg, coords - ivec3(1, 0, 0), 0).g) * 0.5;
     float dvy = (texelFetch(u_inputImg, coords + ivec3(0, 1, 0), 0).b - texelFetch(u_inputImg, coords - ivec3(0, 1, 0), 0).b) * 0.5;

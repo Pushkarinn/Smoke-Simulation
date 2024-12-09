@@ -43,12 +43,11 @@ public:
         for (int i = 0; i < dimXZ; i++) {
             for (int j = 0; j < dimY; j++) {
                 for (int k = 0; k < dimXZ; k++) {
-                    int distSq = pow(i - 64, 2) + pow(j - 64, 2) + pow(k - 64, 2);
-                    float val = distSq < 32 * 32 ? 1.0f : 0.0f;
+                    int distSq = pow(i - 16, 2) + pow(j - 64, 2) + pow(k - 64, 2);
+                    float val = distSq < 16 * 16 ? 1.0f : 0.0f;
                     data[index(i, j, k, 0)] = val;
 
-                    float vel_val = (i >= 32 && i < 96 && j >= 32 && j < 96 && k >= 32 && k < 96) ? 15.0f : 0.0f;
-                    data[index(i, j, k, 1)] = vel_val;
+                    data[index(i, j, k, 1)] = val * 45.0f;
                 }
             }
         }
@@ -77,8 +76,8 @@ public:
         diffuseShader.use();
 
         setUniform(diffuseShader.id(), "dt", dt);
-        setUniform(diffuseShader.id(), "mu_density", 0.0001f);
-        setUniform(diffuseShader.id(), "mu_velocity", 0.0001f);
+        setUniform(diffuseShader.id(), "mu_density", 0.005f);
+        setUniform(diffuseShader.id(), "mu_velocity", 0.001f);
         setUniform(diffuseShader.id(), "u_inputImg", 0);
 
         glActiveTexture(GL_TEXTURE0);
@@ -90,16 +89,15 @@ public:
             diffuseShader.run();
         }
 
+        glActiveTexture(GL_TEXTURE0);
+        densVelTexture.bind();
+
         advectShader.use();
 
         setUniform(advectShader.id(), "dt", dt);
         setUniform(advectShader.id(), "u_inputImg", 0);
         setUniform(advectShader.id(), "u_velocity", 0);
         setUniform(advectShader.id(), "u_mask", glm::vec4(0.0f, 1.0f, 1.0f, 1.0f));
-
-        advectShader.run();
-
-        setUniform(advectShader.id(), "u_mask", glm::vec4(1.0f, 0.0f, 0.0f, 0.0f));
 
         advectShader.run();
 
@@ -142,6 +140,18 @@ public:
         glBindImageTexture(0, densVelTexture.textureID, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32F);
 
         nablaGShader.run();
+
+        glActiveTexture(GL_TEXTURE0);
+        densVelTexture.bind();
+
+        advectShader.use();
+
+        setUniform(advectShader.id(), "dt", dt);
+        setUniform(advectShader.id(), "u_inputImg", 0);
+        setUniform(advectShader.id(), "u_velocity", 0);
+        setUniform(advectShader.id(), "u_mask", glm::vec4(1.0f, 0.0f, 0.0f, 0.0f));
+
+        advectShader.run();
 
         glBindImageTexture(0, 0, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
         glBindTexture(GL_TEXTURE_3D, 0);

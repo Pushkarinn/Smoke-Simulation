@@ -19,11 +19,10 @@ void main() {
     ivec3 dims = imageSize(img_output);
     ivec3 coords = ivec3(gl_GlobalInvocationID.xyz);
 
-    //if(coords.x == 0 || coords.y == 0 || coords.z == 0 || coords.x == dims.x - 1 || coords.y == dims.y - 1 || coords.z == dims.z - 1)
-    //    return;
+    if(coords.x == 0 || coords.y == 0 || coords.z == 0 || coords.x == dims.x - 1 || coords.y == dims.y - 1 || coords.z == dims.z - 1)
+       return;
 
     vec4 original = sampleTex(vec3(coords), u_inputImg, dims);
-    
 
     vec3 vel = 0.125 * (
         sampleTex(vec3(coords) + 0.5 * vec3( 1,  1,  1), u_velocity, dims).gba +
