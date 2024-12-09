@@ -11,12 +11,15 @@ public:
     Texture3D densVelTexture{};
     Texture3D divergenceTexture{};
     Texture3D divFreeTexture{};
+    Texture3D curlTexture{};
 
     ComputeShader diffuseShader{};
     ComputeShader advectShader{};
     ComputeShader divShader{};
     ComputeShader solveDivShader{};
     ComputeShader nablaGShader{};
+    ComputeShader curlShader{};
+    ComputeShader confForceShader{};
 
     GLuint dimXZ{};
     GLuint dimY{};
@@ -62,12 +65,15 @@ public:
         divShader.init("../data/shaders/compute/div.glsl", dimXZ, dimY);
         solveDivShader.init("../data/shaders/compute/solve_div.glsl", dimXZ, dimY);
         nablaGShader.init("../data/shaders/compute/nabla_g.glsl", dimXZ, dimY);
+        curlShader.init("../data/shaders/compute/curl.glsl", dimXZ, dimY);
+        confForceShader.init("../data/shaders/compute/conf_force.glsl", dimXZ, dimY);
 
         densVelTexture.init(dimXZ, dimY, data);
         divergenceTexture.init(dimXZ, dimY);
 
-        std::vector<float> divFreeData(dimXZ * dimY * dimXZ * 4, 0.0f);
-        divFreeTexture.init(dimXZ, dimY, divFreeData);
+        std::vector<float> zeroData(dimXZ * dimY * dimXZ * 4, 0.0f);
+        divFreeTexture.init(dimXZ, dimY, zeroData);
+        curlTexture.init(dimXZ, dimY, zeroData);
     }
 
     void simulationStep(glm::vec3 targetSize, glm::vec3 targetOffest, float dt) {
@@ -89,9 +95,6 @@ public:
             diffuseShader.run();
         }
 
-        glActiveTexture(GL_TEXTURE0);
-        densVelTexture.bind();
-
         advectShader.use();
 
         setUniform(advectShader.id(), "dt", dt);
@@ -100,6 +103,33 @@ public:
         setUniform(advectShader.id(), "u_mask", glm::vec4(0.0f, 1.0f, 1.0f, 1.0f));
 
         advectShader.run();
+
+        glActiveTexture(GL_TEXTURE0);
+        densVelTexture.bind();
+
+        curlShader.use();
+        setUniform(curlShader.id(), "u_inputImg", 0);
+
+        glBindImageTexture(0, curlTexture.textureID, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32F);
+
+        curlShader.run();
+
+        glActiveTexture(GL_TEXTURE0);
+        densVelTexture.bind();
+        glActiveTexture(GL_TEXTURE1);
+        curlTexture.bind();
+
+        confForceShader.use();
+        setUniform(confForceShader.id(), "u_inputImg", 0);
+        setUniform(confForceShader.id(), "u_curl", 1);
+        setUniform(confForceShader.id(), "dt", dt);
+
+        glBindImageTexture(0, densVelTexture.textureID, 0, GL_TRUE, 0, GL_READ_WRITE, GL_RGBA32F);
+
+        confForceShader.run();
+
+        glActiveTexture(GL_TEXTURE0);
+        densVelTexture.bind();
 
         divShader.use();
 
@@ -165,6 +195,8 @@ public:
             return divergenceTexture.textureID;
         case 2:
             return divFreeTexture.textureID;
+        case 3:
+            return curlTexture.textureID;
         default:
             return densVelTexture.textureID;
         }

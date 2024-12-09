@@ -213,7 +213,7 @@ void renderPerfsUI() {
     ImGui::Text("FPS: %.1f", g_fps);
     ImGui::Text("Frame time: %.3f ms", 1000.0f / g_fps);
 
-    static const char* items[]{ "Volume","Divergence","Div Solve" };
+    static const char* items[]{ "Volume","Divergence","Div Solve", "Curl" };
     ImGui::Combo("Show texture", &Selecteditem, items, IM_ARRAYSIZE(items));
 
     ImGui::End();
