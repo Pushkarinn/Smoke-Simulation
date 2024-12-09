@@ -53,14 +53,10 @@ public:
     }
 
     void init(int width, int height) {
-        m_objects.push_back(std::make_shared<Object3D>(Mesh::genSubdividedPlane(2)));
-        m_objects[0]->setModelMatrix(glm::scale(glm::mat4(1.0f), glm::vec3(10.0f, 10.0f, 10.0f)));
-        m_objects[0]->setModelMatrix(glm::rotate(m_objects[0]->getModelMatrix(), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)));
-        m_objects[0]->setModelMatrix(glm::translate(m_objects[0]->getModelMatrix(), glm::vec3(0.0f, -1.0f, 0.0f)));
 
         m_objects.push_back(std::make_shared<Object3D>(Mesh::genSubdividedPlane(2)));
-        m_objects[1]->setModelMatrix(glm::scale(glm::mat4(1.0f), glm::vec3(10.0f, 10.0f, 10.0f)));
-        m_objects[1]->setModelMatrix(glm::translate(m_objects[1]->getModelMatrix(), glm::vec3(0.0f, -1.0f, 0.0f)));
+        m_objects[0]->setModelMatrix(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -10.0f, 0.0f)));
+        m_objects[0]->setModelMatrix(glm::scale(m_objects[0]->getModelMatrix(), glm::vec3(30.0f, 30.0f, 30.0f)));
 
         m_lights[m_numLights++] = Light{
             2,

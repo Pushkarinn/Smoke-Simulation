@@ -29,7 +29,7 @@ public:
 public:
     VoxelTexture() {
         dimXZ = 128;
-        dimY = 128;
+        dimY = 256;
     }
     ~VoxelTexture() {
     }
@@ -46,11 +46,11 @@ public:
         for (int i = 0; i < dimXZ; i++) {
             for (int j = 0; j < dimY; j++) {
                 for (int k = 0; k < dimXZ; k++) {
-                    int distSq = pow(i - 16, 2) + pow(j - 64, 2) + pow(k - 64, 2);
+                    int distSq = pow(i - 64, 2) + pow(j - 16, 2) + pow(k - 64, 2);
                     float val = distSq < 16 * 16 ? 1.0f : 0.0f;
                     data[index(i, j, k, 0)] = val;
 
-                    data[index(i, j, k, 1)] = val * 45.0f;
+                    data[index(i, j, k, 2)] = val * 45.0f;
                 }
             }
         }
