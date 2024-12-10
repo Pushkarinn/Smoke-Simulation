@@ -7,6 +7,8 @@ layout (rgba32f, binding = 0) uniform image3D img_output;
 uniform sampler3D u_inputImg;
 uniform sampler3D u_divergence;
 
+uniform bool first_time;
+
 void set_boundary(ivec3 coords, ivec3 dims) {
     if(coords.x == 0) {
         imageStore(img_output, coords, texelFetch(u_inputImg, coords + ivec3(1, 0, 0), 0));
@@ -39,14 +41,18 @@ void main() {
     }
 
     vec4 divergence = texelFetch(u_divergence, coords, 0);
-    vec4 g_L = texelFetch(u_inputImg, coords + ivec3(-1, 0, 0), 0);
-    vec4 g_R = texelFetch(u_inputImg, coords + ivec3(+1, 0, 0), 0);
-    vec4 g_B = texelFetch(u_inputImg, coords + ivec3(0, -1, 0), 0);
-    vec4 g_T = texelFetch(u_inputImg, coords + ivec3(0, +1, 0), 0);
-    vec4 g_D = texelFetch(u_inputImg, coords + ivec3(0, 0, -1), 0);
-    vec4 g_U = texelFetch(u_inputImg, coords + ivec3(0, 0, +1), 0);
+    vec4 sum = vec4(0.0);
 
-    vec4 sum = g_L + g_R + g_B + g_T + g_D + g_U;
+    if(!first_time) {
+        vec4 g_L = texelFetch(u_inputImg, coords + ivec3(-1, 0, 0), 0);
+        vec4 g_R = texelFetch(u_inputImg, coords + ivec3(+1, 0, 0), 0);
+        vec4 g_B = texelFetch(u_inputImg, coords + ivec3(0, -1, 0), 0);
+        vec4 g_T = texelFetch(u_inputImg, coords + ivec3(0, +1, 0), 0);
+        vec4 g_D = texelFetch(u_inputImg, coords + ivec3(0, 0, -1), 0);
+        vec4 g_U = texelFetch(u_inputImg, coords + ivec3(0, 0, +1), 0);
+
+        sum = g_L + g_R + g_B + g_T + g_D + g_U;
+    }
 
     float res = (sum.r - divergence.r) / 6.0;
 

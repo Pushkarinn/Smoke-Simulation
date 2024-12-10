@@ -67,7 +67,7 @@ public:
         m_volumeParams.lightStepSize = 0.01f;
 
         m_generationParams.domainCenter = glm::vec3(0, 10, 0);
-        m_generationParams.domainSize = glm::vec3(10, 20, 10);
+        m_generationParams.domainSize = glm::vec3(20, 20, 20);
 
         m_volumeParams.cloudAbsorption = 1.35f;
         m_volumeParams.lightAbsorption = 0.35f;

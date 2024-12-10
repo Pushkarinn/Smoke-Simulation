@@ -41,6 +41,9 @@ Scene g_scene{};
 
 float g_fps = 0.0f;
 
+float g_dt = 0.1f;
+bool g_running = true;
+
 // Executed each time the window is resized. Adjust the aspect ratio and the rendering viewport to the current window.
 void windowSizeCallback(GLFWwindow* window, int width, int height) {
     g_scene.m_camera.setAspectRatio(static_cast<float>(width) / static_cast<float>(height));
@@ -195,6 +198,7 @@ void init() {
 
 void clear() {
     glDeleteProgram(g_geometryShader);
+    glDeleteProgram(g_lightingShader);
 
     glfwDestroyWindow(g_window);
     glfwTerminate();
@@ -204,7 +208,6 @@ void clear() {
     ImGui::DestroyContext();
 }
 
-bool g_triggerRecompute = true;
 int Selecteditem = 0;
 
 void renderPerfsUI() {
@@ -213,8 +216,12 @@ void renderPerfsUI() {
     ImGui::Text("FPS: %.1f", g_fps);
     ImGui::Text("Frame time: %.3f ms", 1000.0f / g_fps);
 
+    ImGui::Checkbox("Simulation running", &g_running);
+
     static const char* items[]{ "Volume","Divergence","Div Solve", "Curl" };
     ImGui::Combo("Show texture", &Selecteditem, items, IM_ARRAYSIZE(items));
+
+    ImGui::SliderFloat("Simulation dt", &g_dt, 0.0f, 1.0f);
 
     ImGui::End();
 }
@@ -275,7 +282,7 @@ void renderUI() {
 
     renderPerfsUI();
     renderLightsUI();
-    if (g_cloudsManager.renderUI()) g_triggerRecompute = true;
+    g_cloudsManager.renderUI();
 
     // End drawing here
 
@@ -367,11 +374,8 @@ void update(const float currentTimeInSec) {
 
     g_scene.m_camera.setPosition(targetPosition + glm::vec3(cameraOffset));
 
-    if (frameCount % 1 == 0) g_triggerRecompute = true;
-
-    if (g_triggerRecompute) {
-        g_simulation.simulationStep(g_cloudsManager.m_generationParams.domainSize, g_cloudsManager.m_generationParams.domainCenter, 0.1f);
-        g_triggerRecompute = false;
+    if (g_running) {
+        g_simulation.simulationStep(g_cloudsManager.m_generationParams.domainSize, g_cloudsManager.m_generationParams.domainCenter, g_dt);
     }
 
     frameCount++;

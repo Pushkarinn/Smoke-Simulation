@@ -13,6 +13,7 @@ public:
     Texture3D divFreeTexture{};
     Texture3D curlTexture{};
 
+    ComputeShader volumeGenShader{};
     ComputeShader diffuseShader{};
     ComputeShader advectShader{};
     ComputeShader divShader{};
@@ -28,7 +29,7 @@ public:
 
 public:
     Simulation() {
-        dimXZ = 128;
+        dimXZ = 256;
         dimY = 256;
     }
     ~Simulation() {
@@ -38,28 +39,8 @@ public:
         return 4 * (x + y * dimXZ + z * dimXZ * dimY) + channel;
     }
 
-    void generate_data() {
-
-        data.resize(dimXZ * dimY * dimXZ * 4);
-        data.assign(dimXZ * dimY * dimXZ * 4, 0.0f);
-
-        for (int i = 0; i < dimXZ; i++) {
-            for (int j = 0; j < dimY; j++) {
-                for (int k = 0; k < dimXZ; k++) {
-                    int distSq = pow(i - 64, 2) + pow(j - 16, 2) + pow(k - 64, 2);
-                    float val = distSq < 16 * 16 ? 1.0f : 0.0f;
-                    data[index(i, j, k, 0)] = val;
-
-                    data[index(i, j, k, 2)] = val * 45.0f;
-                }
-            }
-        }
-
-    }
-
     void init_textures() {
-        generate_data();
-
+        volumeGenShader.init("../data/shaders/compute/volume_gen.glsl", dimXZ, dimY);
         diffuseShader.init("../data/shaders/compute/diffuse.glsl", dimXZ, dimY);
         advectShader.init("../data/shaders/compute/advect.glsl", dimXZ, dimY);
         divShader.init("../data/shaders/compute/div.glsl", dimXZ, dimY);
@@ -68,7 +49,12 @@ public:
         curlShader.init("../data/shaders/compute/curl.glsl", dimXZ, dimY);
         confForceShader.init("../data/shaders/compute/conf_force.glsl", dimXZ, dimY);
 
-        densVelTexture.init(dimXZ, dimY, data);
+        densVelTexture.init(dimXZ, dimY);
+
+        volumeGenShader.use();
+
+        volumeGenShader.run({}, {}, &densVelTexture);
+
         divergenceTexture.init(dimXZ, dimY);
 
         std::vector<float> zeroData(dimXZ * dimY * dimXZ * 4, 0.0f);
@@ -106,11 +92,9 @@ public:
         divShader.use();
         divShader.run({ &densVelTexture }, { "u_inputImg" }, &divergenceTexture);
 
-        std::vector<float> divFreeData(dimXZ * dimY * dimXZ * 4, 0.0f); // Reset the div free texture 
-        divFreeTexture.init(dimXZ, dimY, divFreeData);
-
         solveDivShader.use();
         for (int i = 0; i < 15; i++) {
+            setUniform(solveDivShader.id(), "first_time", i == 0 ? 1 : 0);
             solveDivShader.run({ &divFreeTexture, &divergenceTexture }, { "u_inputImg", "u_divergence" }, &divFreeTexture);
         }
 
