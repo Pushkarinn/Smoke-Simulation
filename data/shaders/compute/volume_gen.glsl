@@ -8,7 +8,7 @@ void main() {
 	ivec3 coords = ivec3(gl_GlobalInvocationID);
     ivec3 dims = imageSize(img_output);
     
-    float dist = length(coords - ivec3(64, 16, 64));
+    float dist = length(coords - ivec3(128, 16, 128));
     float val = dist < 16 ? 1.0f : 0.0f;
 
 	

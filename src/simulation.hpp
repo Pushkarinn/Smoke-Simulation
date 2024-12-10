@@ -63,8 +63,6 @@ public:
     }
 
     void simulationStep(glm::vec3 targetSize, glm::vec3 targetOffest, float dt) {
-        //std::cout << "Generating voxel texture..." << std::endl;
-
         diffuseShader.use();
 
         setUniform(diffuseShader.id(), "dt", dt);
