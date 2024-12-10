@@ -172,7 +172,7 @@ vec4 raymarchCloud(vec3 rayOrigin, vec3 rayDir, float trender) {
 			vec3 p = rayOrigin + rayDir * t;
 			float density = sampleDensity(p);
 
-			if(density > 0) {
+			if(density > 0.0001) {
 				for(int j = 0; j < u_numLights; j++) {
 					float lightTransmittance = lightMarch(p, u_lights[j]);
 					float phase = phase(dot(rayDir, rayDir));
