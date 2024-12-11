@@ -55,19 +55,18 @@ bool shiftPressed = false;
 // Executed each time a key is entered.
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (action == GLFW_PRESS) {
-        if (key == GLFW_KEY_W) {
-            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        }
-        if (key == GLFW_KEY_F) {
-            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        }
-        if ((key == GLFW_KEY_ESCAPE || key == GLFW_KEY_Q)) {
-            glfwSetWindowShouldClose(window, true);  // Closes the application if the escape key is pressed
-        }
-        if (key == GLFW_KEY_LEFT_SHIFT) shiftPressed = true;
-        if (key == GLFW_KEY_R) {
+        if ((key == GLFW_KEY_ESCAPE))
+            glfwSetWindowShouldClose(window, true);
+
+        if (key == GLFW_KEY_LEFT_SHIFT)
+            shiftPressed = true;
+
+        if (key == GLFW_KEY_R)
             g_simulation.init_textures();
-        }
+
+        if (key == GLFW_KEY_SPACE)
+            g_running = !g_running;
+
     }
     if (action == GLFW_RELEASE) {
         if (key == GLFW_KEY_LEFT_SHIFT) shiftPressed = false;
