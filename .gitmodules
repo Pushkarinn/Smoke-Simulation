@@ -7,3 +7,6 @@
 [submodule "dep/glad"]
 	path = dep/glad
 	url = https://github.com/Dav1dde/glad.git
+[submodule "dep/imgui"]
+	path = dep/imgui
+	url = https://github.com/StormCreeper/ImGUI_CMake.git
