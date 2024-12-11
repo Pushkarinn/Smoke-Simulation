@@ -29,3 +29,5 @@ At each frame, several compute shaders operate on this texture, to solve numeric
 ![image](https://github.com/user-attachments/assets/9754b750-d1f7-4d6f-b737-fe422711c890)
 
 ![image](https://github.com/user-attachments/assets/7a547c99-622e-44ad-a853-497e3858fefb)
+
+![image](https://github.com/user-attachments/assets/791f5018-7858-4888-ac65-b207915c6038)
