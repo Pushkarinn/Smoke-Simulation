@@ -41,7 +41,7 @@ Scene g_scene{};
 
 float g_fps = 0.0f;
 
-float g_dt = 0.1f;
+float g_dt = 0.05f;
 bool g_running = true;
 
 // Executed each time the window is resized. Adjust the aspect ratio and the rendering viewport to the current window.

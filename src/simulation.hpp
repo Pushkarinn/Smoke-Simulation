@@ -29,8 +29,8 @@ public:
 
 public:
     Simulation() {
-        dimXZ = 256;
-        dimY = 256;
+        dimXZ = 128;
+        dimY = 128;
     }
     ~Simulation() {
     }
@@ -69,7 +69,7 @@ public:
         setUniform(diffuseShader.id(), "mu_density", 0.005f);
         setUniform(diffuseShader.id(), "mu_velocity", 0.001f);
 
-        for (int i = 0; i < 15; i++) {
+        for (int i = 0; i < 5; i++) {
             diffuseShader.run({ &densVelTexture }, { "u_inputImg" }, &densVelTexture);
         }
 
@@ -91,7 +91,7 @@ public:
         divShader.run({ &densVelTexture }, { "u_inputImg" }, &divergenceTexture);
 
         solveDivShader.use();
-        for (int i = 0; i < 15; i++) {
+        for (int i = 0; i < 10; i++) {
             setUniform(solveDivShader.id(), "first_time", i == 0 ? 1 : 0);
             solveDivShader.run({ &divFreeTexture, &divergenceTexture }, { "u_inputImg", "u_divergence" }, &divFreeTexture);
         }
