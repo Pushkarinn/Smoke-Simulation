@@ -92,14 +92,32 @@ bool projectToDomain(vec3 ro, vec3 rd, out float tmin, out float tmax) {
 	return true;
 }
 
-float sampleDensity(vec3 p) {
+vec3 showVel(vec3 v) {
+    return vec3(
+        exp(-1/abs(v.x)),
+        exp(-1/abs(v.y)),
+        exp(-1/abs(v.z))
+    );
+
+}
+
+vec3 sampleDensity(vec3 p) {
 	// Coordinates in domain space
 	vec3 pDomain = (p - u_domainCenter) / u_domainSize * 0.5 + 0.5;
 
 	if(pDomain.x < -0.01 || pDomain.x > 1.01 || pDomain.y < -0.01 || pDomain.y > 1.01 || pDomain.z < -0.01 || pDomain.z > 1.01)
-		return 0.0;
+		return vec3(0.0);
 
-	return texture(u_voxelTexture, pDomain).r * u_densityMultiplier;
+	return vec3(texture(u_voxelTexture, pDomain).r) * u_densityMultiplier;
+}
+
+vec3 sampleEmissive(vec3 p) {
+    vec3 pDomain = (p - u_domainCenter) / u_domainSize * 0.5 + 0.5;
+
+	if(pDomain.x < -0.01 || pDomain.x > 1.01 || pDomain.y < -0.01 || pDomain.y > 1.01 || pDomain.z < -0.01 || pDomain.z > 1.01)
+		return vec3(0.0);
+
+	return vec3(length(texture(u_voxelTexture, pDomain).gba)) * u_densityMultiplier * 0.004 * vec3(1, 0.5, 0.0);
 }
 
 float hg(float cosTheta, float g) { // Henyey-Greenstein phase function
@@ -113,13 +131,17 @@ float phase(float cosTheta) { // Composite phase function
 	return u_phaseParams.z + hgBlend*u_phaseParams.w;
 }
 
-float lightMarch(vec3 ro, Light light) {
+vec3 exp3(vec3 v) {
+    return vec3(exp(v.x), exp(v.y), exp(v.z));
+}
+
+vec3 lightMarch(vec3 ro, Light light) {
 	vec3 lightDir = normalize(light.position - ro);
 	if(light.type == 2) lightDir = normalize(light.position);
-	if(light.type == 0) return 1.0;
+	if(light.type == 0) return vec3(1.0);
 
 	float tmin, tmax;
-	if(!projectToDomain(ro, lightDir, tmin, tmax)) return 1.0;
+	if(!projectToDomain(ro, lightDir, tmin, tmax)) return vec3(1.0);
 
 	float t = tmin;
 
@@ -128,22 +150,22 @@ float lightMarch(vec3 ro, Light light) {
 		float tmaxlight = length(light.position - ro);
 		tmax = min(tmax, tmaxlight);
 
-		if(tmin >= tmax) return 1.0;
+		if(tmin >= tmax) return vec3(1.0);
 	}
 	float maxT = tmax - tmin + 0.01;
 
 	float stepSize = max(maxT / MAX_LIGHT_STEPS, u_lightStepSize);
 	
-	float totalDensity = 0.0;
+	vec3 totalDensity = vec3(0.0);
 
 	for(int i = 0; i < MAX_LIGHT_STEPS && t <= tmax; i++) {
 		vec3 p = ro + lightDir * t;
-		float d = sampleDensity(p);
+		vec3 d = sampleDensity(p);
 		totalDensity += d * stepSize;
 		t += stepSize;
 	}
 
-	return exp(-totalDensity * u_lightAbsorption);
+	return exp3(-totalDensity * u_lightAbsorption);
 }
 
 vec3 getSkyColor(vec3 dir) {
@@ -159,9 +181,9 @@ vec3 getSkyColor(vec3 dir) {
 	return max(color, 0.);
 }
 
-vec4 raymarchCloud(vec3 rayOrigin, vec3 rayDir, float trender) {
-	float transmittance = 1.0;
-	vec3 lightEnergy = vec3(0);
+void raymarchCloud(vec3 rayOrigin, vec3 rayDir, float trender, inout vec3 lightEnergy, inout vec3 transmittance) {
+	transmittance = vec3(1.0);
+	lightEnergy = vec3(0);
 
 	float tmin, tmax;
 	if(projectToDomain(rayOrigin, rayDir, tmin, tmax)) {
@@ -170,23 +192,22 @@ vec4 raymarchCloud(vec3 rayOrigin, vec3 rayDir, float trender) {
 		float stepSize = max((tmax - tmin) / MAX_STEPS, u_stepSize);
 		for(int i = 0; i < MAX_STEPS && t < tmax; i++) {
 			vec3 p = rayOrigin + rayDir * t;
-			float density = sampleDensity(p);
+			vec3 density = sampleDensity(p);
 
-			if(density > 0.0001) {
+			if(length(density) > 0.0001) {
 				for(int j = 0; j < u_numLights; j++) {
-					float lightTransmittance = lightMarch(p, u_lights[j]);
+					vec3 lightTransmittance = lightMarch(p, u_lights[j]);
 					float phase = phase(dot(rayDir, rayDir));
 					lightEnergy += density * stepSize * transmittance * lightTransmittance * phase * u_lights[j].intensity * u_lights[j].color;
 				}
-				transmittance *= exp(-density * stepSize * u_cloudAbsorption);
+                lightEnergy += density * sampleEmissive(p) * transmittance;
+				transmittance *= exp3(-density * stepSize * u_cloudAbsorption);
 
-				if(transmittance < 0.01) break;
+				if(length(transmittance) < 0.01) break;
 			}
 			t += stepSize;
 		}
 	}
-
-	return vec4(lightEnergy, transmittance);
 }
 
 vec3 computeRenderColor(vec3 albedo, vec3 normal, vec3 position) { // Lighting on solid objects
@@ -206,7 +227,7 @@ vec3 computeRenderColor(vec3 albedo, vec3 normal, vec3 position) { // Lighting o
 		}
 		float diff = max(dot(normal, lightDir), 0.0);
 
-		float lightTransmittance = 0.5 + 0.5 * lightMarch(position, u_lights[i]); // Arbitrary, to account for ambient light
+		vec3 lightTransmittance = 0.5 + 0.5 * lightMarch(position, u_lights[i]); // Arbitrary, to account for ambient light
 
 		diffuse += albedo * diff * u_lights[i].color * u_lights[i].intensity * lightTransmittance;
 	}
@@ -231,10 +252,11 @@ void main() {
 
 	float trender = length(position - rayOrigin);
 	if(position == vec3(0)) trender = 1000000.0;
-	
-	vec4 cloudColor = raymarchCloud(rayOrigin, rayDir, trender);
-	vec3 lightEnergy = cloudColor.rgb;
-	float transmittance = cloudColor.a;
+
+    vec3 lightEnergy;
+    vec3 transmittance;
+
+	raymarchCloud(rayOrigin, rayDir, trender, lightEnergy, transmittance);
 
 	vec3 renderColor = vec3(0);
 
