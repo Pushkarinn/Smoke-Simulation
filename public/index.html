@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta
+      name="description"
+      content="3D Model on Mapbox using React and Three.js"
+    />
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css" rel="stylesheet">
+    <title>3D Model Mapbox React</title>
+    <script>
+      // Suppress WebGL fallback warnings
+      const originalWarn = console.warn;
+      console.warn = function(...args) {
+        const message = args.join(' ');
+        if (message.includes('Automatic fallback to software WebGL') || 
+            message.includes('GroupMarkerNotSet') ||
+            message.includes('featureNamespace place-A')) {
+          return; // Suppress these specific warnings
+        }
+        originalWarn.apply(console, args);
+      };
+      
+      // Handle WebGL context loss gracefully
+      window.addEventListener('webglcontextlost', function(event) {
+        console.log('WebGL context lost. Attempting recovery...');
+        event.preventDefault();
+      });
+      
+      window.addEventListener('webglcontextrestored', function(event) {
+        console.log('WebGL context restored.');
+      });
+    </script>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+  </body>
+</html>
